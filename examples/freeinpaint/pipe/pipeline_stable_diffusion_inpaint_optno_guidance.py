@@ -1100,7 +1100,7 @@ class StableDiffusionInpaintOptNoGuidancePipeline(
         masked_to_non_mask_self_attn = self_attention_maps * mask_to_non_mask_attention
         masked_to_non_mask_self_attn_sum = masked_to_non_mask_self_attn.sum(dim=-1)
         self_attn_loss = -masked_self_attn_sum.mean() + masked_to_non_mask_self_attn_sum.mean()
-        self_attn_loss = self_attn_loss * self.self_attn_loss_scale
+        self_attn_loss = self_attn_loss * getattr(self, 'self_attn_loss_scale', 5.0)
 
         cross_attn_loss = cross_attn_loss * torch.ones(1).to(self._execution_device)
         self_attn_loss  = self_attn_loss * torch.ones(1).to(self._execution_device)
@@ -1477,8 +1477,13 @@ class StableDiffusionInpaintOptNoGuidancePipeline(
         self._cross_attention_kwargs = cross_attention_kwargs
         self._interrupt = False
 
-        overall_text_input = self.overall_reward.process_text(prompt)
-        prompt_text_input = self.prompt_reward.process_text(prompt)
+        use_reward_guidance = getattr(self, 'reward_guidance_scale', 0) > 0
+        if use_reward_guidance:
+            overall_text_input = self.overall_reward.process_text(prompt)
+            prompt_text_input = self.prompt_reward.process_text(prompt)
+        else:
+            overall_text_input = None
+            prompt_text_input = None
 
         # 2. Define call parameters
         if prompt is not None and isinstance(prompt, str):
@@ -1641,7 +1646,7 @@ class StableDiffusionInpaintOptNoGuidancePipeline(
         self.register_attention_control()
 
         run_initno = True
-        if run_initno and self.opt_noise_steps>0:
+        if run_initno and getattr(self, 'opt_noise_steps', 0) > 0:
             max_round = 5
             with torch.enable_grad():
                 optimized_latents_pool = []
@@ -1653,8 +1658,8 @@ class StableDiffusionInpaintOptNoGuidancePipeline(
                         prompt_embeds,
                         1-(mask_condition < 0.5).to(dtype=latents.dtype, device=device),
                         attention_mask,
-                        initno_lr=self.initno_lr,
-                        max_step=self.opt_noise_steps,
+                        initno_lr=getattr(self, 'initno_lr', 1e-1),
+                        max_step=getattr(self, 'opt_noise_steps', 40),
                         attn_res=attn_res,
                         round=round,
                         num_inference_steps=num_inference_steps,
@@ -1707,7 +1712,7 @@ class StableDiffusionInpaintOptNoGuidancePipeline(
                                 prompt_embeds,
                                 1-(mask_condition < 0.5).to(dtype=latents.dtype, device=device),
                                 attention_mask,
-                                initno_lr=self.initno_lr,
+                                initno_lr=getattr(self, 'initno_lr', 1e-1),
                                 max_step=50,
                                 attn_res=attn_res,
                                 round=round+1,
@@ -1767,7 +1772,7 @@ class StableDiffusionInpaintOptNoGuidancePipeline(
                 mask_guidance = 1 - mask_guidance
                 latent_model_input_guidance = latent_model_input.chunk(2)[1] if self.do_classifier_free_guidance else None
 
-                if self.reward_guidance_scale > 0:
+                if use_reward_guidance:
                     noise_pred, latents = self.cond_fn(
                         latent_model_input_guidance,
                         latents,

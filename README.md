@@ -77,6 +77,33 @@ If you want to run the evaluation in our paper, you need to download and process
 
 FreeInpaint is training-free; you need to download the model you want to apply, such as [stable-diffusion-inpainting](https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-inpainting), [stable-diffusion-xl-inpainting](https://huggingface.co/diffusers/stable-diffusion-xl-1.0-inpainting-0.1), [BrushNet-Random-Mask](https://github.com/TencentARC/BrushNet), [PowerPaint](https://huggingface.co/JunhaoZhuang/PowerPaint-v1), [SD3-Controlnet-Inpainting](https://huggingface.co/alimama-creative/SD3-Controlnet-Inpainting).
 
+## 🖥️ Gradio Demo (Interactive App)
+
+You can try FreeInpaint interactively with the provided Gradio app:
+
+```bash
+python app.py
+```
+
+The app will launch at `http://localhost:7860`. You can:
+- Upload an image and **draw a mask** (white brush) on the area to inpaint.
+- Enter a text prompt describing what to generate.
+- Optionally enable FreeInpaint reward-guided optimisation by providing reward model paths.
+
+To pre-load a model at startup and create a public share link:
+
+```bash
+python app.py \
+    --model stable-diffusion-v1-5/stable-diffusion-inpainting \
+    --share
+```
+
+To use a locally downloaded model:
+
+```bash
+python app.py --model /path/to/stable-diffusion-inpainting
+```
+
 ## 🏃🏼 Running Scripts
 
 Our code is in `examples/freeinpaint/`. We have now open-sourced the pipeline code for all base models integrated with FreeInpaint, as well as the evaluation code for BrushNet.
